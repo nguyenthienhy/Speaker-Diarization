@@ -246,29 +246,8 @@ def result_map(intervals, predicted_labels):
 
     return _remove_non_speech(speaker_slice, intervals)
 
-
-def save_and_report(plot, result_map, der=None, dir=consts.audio_dir):
-    checkpoint_dir = os.path.join(dir, f'{datetime.now():%Y%m%dT%H%M%S}')
-    os.mkdir(checkpoint_dir)
-
-    with open(os.path.join(checkpoint_dir, consts.result_map_file), 'w') as result:
-        plot.save(checkpoint_dir)
-
-        for i, cluster in enumerate(sorted(result_map.keys())):
-            if i != 0:
-                result.write('\n')
-
-            result.write(f'{cluster}\n')
-
-            for segment in result_map[cluster]:
-                result.write(f'{_beautify_time(segment["start"])} --> {_beautify_time(segment["stop"])}\n')
-
-        result.write(f'\n{der:.4f}')
-
-    print(f'Diarization done. All results saved in {checkpoint_dir}.')
-
-def save_and_export(result_map, der=None, dir=consts.audio_dir, audio_name=None):
-    checkpoint_dir = os.path.join(dir, 'results')
+def save_and_export(result_map, der=None, dir=consts.result_dir, audio_name=None):
+    checkpoint_dir = dir
     print(sorted(result_map.keys()))
     num_speakers = len(sorted(result_map.keys()))
     for speaker in range(num_speakers):
@@ -284,8 +263,8 @@ def save_and_export(result_map, der=None, dir=consts.audio_dir, audio_name=None)
       for i, segment in enumerate(result_map[cluster]):
           os.system('ffmpeg -ss ' + str(segment["start"] / 1000) + 
           ' -t ' + str((segment["stop"] - segment["start"]) / 1000) + 
-          ' -i ' + ' ' + consts.audio_dir + '/' + audio_name + ' ' + 
-          consts.audio_dir + '/results/' + str(cluster) + '/'
+          ' -i ' + ' ' + consts.result_dir + '/' + audio_name + ' ' + 
+          consts.result_dir + '/results/' + str(cluster) + '/'
           + audio_name.replace(".wav", "") + '/' 
           + audio_name.replace('.wav', '') 
           + '_segment_' + str(i) + '.wav') 

@@ -1,6 +1,5 @@
 from embedding import model
 
-
 class Params(dict):
     def __getattr__(self, item):
         return self[item]
@@ -8,9 +7,8 @@ class Params(dict):
     def __setattr__(self, key, value):
         self[key] = value
 
-
-# Contains *.wav file and ref.txt file with true map
 audio_dir = './data/wav'
+result_dir = './data/results'
 
 # Default slide window params
 slide_window_params = Params()
