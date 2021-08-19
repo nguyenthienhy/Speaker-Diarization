@@ -100,12 +100,14 @@ def _vad(audio_path, sr):
 
 
 def der(reference, hypothesis):
+    # print(reference)
+    # print(hypothesis)
     def convert(map):
         annotation = Annotation()
 
         for cluster in sorted(map.keys()):
             for row in map[cluster]:
-                annotation[Segment(row['start'], row['stop'])] = str(cluster)
+                annotation[Segment(row['start'] / 1000, row['stop'] / 1000)] = str(cluster)
 
         return annotation
 
@@ -126,18 +128,9 @@ def generate_embeddings(specs):
 
     return embeddings
 
-
-def reference(dir):
-    reference_file = None
-
-    for file in os.listdir(dir):
-        if file == consts.reference_file:
-            reference_file = os.path.join(dir, file)
-            break
-
+def reference(reference_file):
     with open(reference_file, 'r') as file:
         reference = {}
-
         for line in file:
             start, stop, speaker = line.split(' ')[0], line.split(' ')[1], line.split(' ')[2].replace('\n', '')
 
@@ -159,18 +152,15 @@ def reference_rttm(reference_file):
         reference = {}
         for line in file:
             start, stop, speaker = line.split(' ')[0], line.split(' ')[1], line.split(' ')[2].replace('\n', '')
-
             if speaker in reference.keys():
-                reference[speaker].append({'start': float(start), 'stop': float(stop)})
+                reference[speaker].append({'start': float(start) * 1000, 'stop': float(stop) * 1000})
             else:
-                reference[speaker] = [{'start': float(start), 'stop': float(stop)}]
-
+                reference[speaker] = [{'start': float(start) * 1000, 'stop': float(stop) * 1000}]
     return reference
 
 
 def linear_spectogram_from_wav(wav, hop_length, win_length, n_fft=1024):
     linear = librosa.stft(wav, n_fft=n_fft, win_length=win_length, hop_length=hop_length)
-
     return linear.T
 
 
