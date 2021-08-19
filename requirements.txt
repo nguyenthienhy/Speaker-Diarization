@@ -1,0 +1,10 @@
+hdbscan
+librosa
+matplotlib
+numpy
+sklearn
+spectralcluster
+tensorflow
+umap-learn
+pyannote.metrics
+pyannote.audio
