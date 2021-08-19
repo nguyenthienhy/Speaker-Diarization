@@ -248,7 +248,12 @@ def result_map(intervals, predicted_labels):
 
 def save_and_export(result_map, der=None, dir=consts.result_dir, audio_name=None):
     checkpoint_dir = dir
-    print(sorted(result_map.keys()))
+    audio_name_dir = os.path.join(checkpoint_dir, audio_name.replace(".wav", ""))
+    if os.path.isdir(audio_name_dir):
+      checkpoint_dir = audio_name_dir
+    else:
+      os.mkdir(audio_name_dir)
+      checkpoint_dir = audio_name_dir
     num_speakers = len(sorted(result_map.keys()))
     for speaker in range(num_speakers):
       speaker_dir = os.path.join(checkpoint_dir, str(speaker))
@@ -263,8 +268,8 @@ def save_and_export(result_map, der=None, dir=consts.result_dir, audio_name=None
       for i, segment in enumerate(result_map[cluster]):
           os.system('ffmpeg -ss ' + str(segment["start"] / 1000) + 
           ' -t ' + str((segment["stop"] - segment["start"]) / 1000) + 
-          ' -i ' + ' ' + consts.result_dir + '/' + audio_name + ' ' + 
-          consts.result_dir + '/results/' + str(cluster) + '/'
+          ' -i ' + ' ' + consts.audio_dir + '/' + audio_name + ' ' + 
+          checkpoint_dir + '/' + str(cluster) + '/'
           + audio_name.replace(".wav", "") + '/' 
           + audio_name.replace('.wav', '') 
           + '_segment_' + str(i) + '.wav') 
