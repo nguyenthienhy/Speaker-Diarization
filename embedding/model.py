@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 from tensorflow.python.framework.ops import disable_eager_execution
 disable_eager_execution()
-from embedding import backbone
+import backbone
 import tensorflow.keras as keras
 import tensorflow.keras.backend as K
 import tensorflow as tf

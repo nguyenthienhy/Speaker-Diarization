@@ -33,29 +33,26 @@ def _arrange_result(predicted_labels, time_spec_rate):
     last_label = predicted_labels[0]
     speaker_slice = {}
     j = 0
-
     for i, label in enumerate(predicted_labels):
         if label == last_label:
             continue
-
         speaker_slice = _append_2_dict(speaker_slice, {last_label: (time_spec_rate * j, time_spec_rate * i)})
         j = i
         last_label = label
-
     speaker_slice = _append_2_dict(speaker_slice,
                                    {last_label: (time_spec_rate * j, time_spec_rate * (len(predicted_labels)))})
 
     return speaker_slice
 
 
-def _beautify_time(time_in_milliseconds):
-    minute = time_in_milliseconds // 1_000 // 60
-    second = (time_in_milliseconds - minute * 60 * 1_000) // 1_000
-    millisecond = time_in_milliseconds % 1_000
+# def _beautify_time(time_in_milliseconds):
+#     minute = time_in_milliseconds // 1_000 // 60
+#     second = (time_in_milliseconds - minute * 60 * 1_000) // 1_000
+#     millisecond = time_in_milliseconds % 1_000
 
-    time = f'{minute}:{second:02d}.{millisecond}'
+#     time = f'{minute}:{second:02d}.{millisecond}'
 
-    return time
+#     return time
 
 
 def _gen_map(intervals):  # interval slices to map table
@@ -70,15 +67,6 @@ def _gen_map(intervals):  # interval slices to map table
     map_table[sum(slice_len)] = intervals[-1, -1]
 
     return map_table
-
-
-def find_wav(dir):
-    for file in os.listdir(dir):
-        if file.endswith('.wav'):
-            return os.path.join(dir, file)
-
-    raise FileExistsError(f'Folder "{dir}" not contains *.wav file')
-
 
 def _vad(audio_path, sr):
     audio, _ = librosa.load(audio_path, sr=sr)
@@ -100,32 +88,23 @@ def _vad(audio_path, sr):
 
 
 def der(reference, hypothesis):
-    # print(reference)
-    # print(hypothesis)
     def convert(map):
         annotation = Annotation()
-
         for cluster in sorted(map.keys()):
             for row in map[cluster]:
                 annotation[Segment(row['start'] / 1000, row['stop'] / 1000)] = str(cluster)
-
         return annotation
-
     metric = DiarizationErrorRate()
-
     return metric(convert(reference), convert(hypothesis), detailed=True)
 
 
 def generate_embeddings(specs):
     embeddings = []
-
     for spec in specs:
         spec = np.expand_dims(np.expand_dims(spec, 0), -1)
         v = model.predict(spec)
         embeddings.append(list(v))
-
     embeddings = np.array(embeddings)[:, 0, :].astype(float)
-
     return embeddings
 
 def reference(reference_file):
@@ -249,18 +228,15 @@ def save_and_export(result_map, der=None, dir=consts.result_dir, audio_name=None
       speaker_dir = os.path.join(checkpoint_dir, str(speaker))
       if not os.path.isdir(speaker_dir):
         os.mkdir(speaker_dir)
-        os.mkdir(speaker_dir + '/' + audio_name.replace(".wav", ""))
       else:
         shutil.rmtree(speaker_dir)
         os.mkdir(speaker_dir)
-        os.mkdir(speaker_dir + '/' + audio_name.replace(".wav", ""))
     for _, cluster in enumerate(sorted(result_map.keys())):
       for i, segment in enumerate(result_map[cluster]):
           os.system('ffmpeg -ss ' + str(segment["start"] / 1000) + 
           ' -t ' + str((segment["stop"] - segment["start"]) / 1000) + 
           ' -i ' + ' ' + consts.audio_dir + '/' + audio_name + ' ' + 
           checkpoint_dir + '/' + str(cluster) + '/'
-          + audio_name.replace(".wav", "") + '/' 
           + audio_name.replace('.wav', '') 
           + '_segment_' + str(i) + '.wav') 
 

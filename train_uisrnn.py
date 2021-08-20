@@ -18,7 +18,7 @@ def diarization_experiment(model_args, training_args, inference_args):
     """
 
     # Train data
-    train_data = np.load('./embedding_data/training_data.npz', allow_pickle=True)
+    train_data = np.load('./data/embedding_data/training_data_voxconverse.npz', allow_pickle=True)
 
     train_sequences = train_data['train_sequence']
     train_cluster_ids = train_data['train_cluster_id']
@@ -41,36 +41,36 @@ def diarization_experiment(model_args, training_args, inference_args):
     history = model.fit(train_sequences, train_cluster_ids, training_args)
     iterations = np.arange(0, training_args.train_iteration)
 
-    model.save('saved_model/model.uisrnn')
+    model.save('saved_model_uisrnn/model.uisrnn')
     with open('history.txt', 'w') as f:
         f.write(str(history))
 
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=iterations,
-        y=history['train_loss'],
-        name='<b>train_loss</b>',
-        connectgaps=True
-    ))
-    fig.add_trace(go.Scatter(
-        x=iterations,
-        y=history['sigma2_prior'],
-        name='<b>sigma2_prior</b>',
-        connectgaps=True
-    ))
-    fig.add_trace(go.Scatter(
-        x=iterations,
-        y=history['negative_log_likelihood'],
-        name='<b>negative_log_likelihood</b>',
-        connectgaps=True
-    ))
-    fig.add_trace(go.Scatter(
-        x=iterations,
-        y=history['regularization'],
-        name='<b>regularization</b>',
-        connectgaps=True
-    ))
-    fig.show()
+    # fig = go.Figure()
+    # fig.add_trace(go.Scatter(
+    #     x=iterations,
+    #     y=history['train_loss'],
+    #     name='<b>train_loss</b>',
+    #     connectgaps=True
+    # ))
+    # fig.add_trace(go.Scatter(
+    #     x=iterations,
+    #     y=history['sigma2_prior'],
+    #     name='<b>sigma2_prior</b>',
+    #     connectgaps=True
+    # ))
+    # fig.add_trace(go.Scatter(
+    #     x=iterations,
+    #     y=history['negative_log_likelihood'],
+    #     name='<b>negative_log_likelihood</b>',
+    #     connectgaps=True
+    # ))
+    # fig.add_trace(go.Scatter(
+    #     x=iterations,
+    #     y=history['regularization'],
+    #     name='<b>regularization</b>',
+    #     connectgaps=True
+    # ))
+    # fig.show()
 
     # Testing.
     # You can also try uisrnn.parallel_predict to speed up with GPU.
@@ -111,7 +111,7 @@ def train():
     training_args.enforce_cluster_id_uniqueness = False
     training_args.batch_size = 32
     training_args.learning_rate = 5e-5
-    training_args.train_iteration = 500
+    training_args.train_iteration = 100
     training_args.num_permutations = 10
     # training_args.grad_max_norm = 5.0
     training_args.learning_rate_half_life = 0

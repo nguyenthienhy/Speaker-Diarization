@@ -7,7 +7,7 @@ class Params(dict):
     def __setattr__(self, key, value):
         self[key] = value
 
-audio_dir = './data/wav'
+audio_dir = './data/test'
 result_dir = './data/results'
 
 # Default slide window params

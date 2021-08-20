@@ -14,6 +14,8 @@ if __name__ == '__main__':
     from viewer import PlotDiar
     import new_utils
     import consts
+    import glob
+    from tqdm import tqdm
 
     # ===========================================
     #        Parse the argument
@@ -40,51 +42,29 @@ if __name__ == '__main__':
 
     SAVED_MODEL_NAME = 'uisrnn/pre_trained/saved_model.uisrnn_benchmark'
 
-    def append2dict(speakerSlice, spk_period):
-        key = list(spk_period.keys())[0]
-        value = list(spk_period.values())[0]
-        timeDict = {}
-        timeDict['start'] = int(value[0]+0.5)
-        timeDict['stop'] = int(value[1]+0.5)
-        if(key in speakerSlice):
-            speakerSlice[key].append(timeDict)
-        else:
-            speakerSlice[key] = [timeDict]
+    # gpu configuration
+    toolkits.initialize_GPU(args.gpu)
 
-        return speakerSlice
+    params = {'dim': (257, None, 1),
+            'nfft': 512,
+            'spec_len': 250,
+            'win_length': 400,
+            'hop_length': 160,
+            'n_classes': 5994,
+            'sampling_rate': 16000,
+            'normalize': True,
+            }
+    
+    network_eval = spkModel.vggvox_resnet2d_icassp(input_dim=params['dim'],
+                                                num_class=params['n_classes'],
+                                                mode='eval', params=args)
+    network_eval.load_weights(args.resume, by_name=True)
 
-    def arrangeResult(labels, time_spec_rate): # {'1': [{'start':10, 'stop':20}, {'start':30, 'stop':40}], '2': [{'start':90, 'stop':100}]}
-        lastLabel = labels[0]
-        speakerSlice = {}
-        j = 0
-        for i,label in enumerate(labels):
-            if(label==lastLabel):
-                continue
-            speakerSlice = append2dict(speakerSlice, {lastLabel: (time_spec_rate*j,time_spec_rate*i)})
-            j = i
-            lastLabel = label
-        speakerSlice = append2dict(speakerSlice, {lastLabel: (time_spec_rate*j,time_spec_rate*(len(labels)))})
-        return speakerSlice
 
-    def genMap(intervals):  # interval slices to maptable
-        slicelen = [sliced[1]-sliced[0] for sliced in intervals.tolist()]
-        mapTable = {}  # vad erased time to origin time, only split points
-        idx = 0
-        for i, sliced in enumerate(intervals.tolist()):
-            mapTable[idx] = sliced[0]
-            idx += slicelen[i]
-        mapTable[sum(slicelen)] = intervals[-1,-1]
-
-        keys = [k for k,_ in mapTable.items()]
-        keys.sort()
-        return mapTable, keys
-
-    def fmtTime(timeInMillisecond):
-        millisecond = timeInMillisecond%1000
-        minute = timeInMillisecond//1000//60
-        second = (timeInMillisecond-minute*60*1000)//1000
-        time = '{}:{:02d}.{}'.format(minute, second, millisecond)
-        return time
+    model_args, _, inference_args = uisrnn.parse_arguments()
+    model_args.observation_dim = 512
+    uisrnnModel = uisrnn.UISRNN(model_args)
+    uisrnnModel.load(SAVED_MODEL_NAME)
 
     def load_wav(vid_path, sr):
         wav, _ = librosa.load(vid_path, sr=sr)
@@ -110,6 +90,7 @@ if __name__ == '__main__':
                 sr=16000, hop_length=160, 
                 n_fft=512, embedding_per_second=0.5, 
                 overlap_rate=0.5):
+        
         wav, intervals = load_wav(path, sr=sr)
         linear_spect = lin_spectogram_from_wav(wav, hop_length, win_length, n_fft)
         mag, _ = librosa.magphase(linear_spect)  # magnitude
@@ -138,35 +119,9 @@ if __name__ == '__main__':
 
         return utterances_spec, intervals
 
-    def main(wav_path, embedding_per_second=1.0, overlap_rate=0.5):
-
-        # gpu configuration
-        toolkits.initialize_GPU(args.gpu)
-
-        params = {'dim': (257, None, 1),
-                'nfft': 512,
-                'spec_len': 250,
-                'win_length': 400,
-                'hop_length': 160,
-                'n_classes': 5994,
-                'sampling_rate': 16000,
-                'normalize': True,
-                }
-
-        network_eval = spkModel.vggvox_resnet2d_icassp(input_dim=params['dim'],
-                                                    num_class=params['n_classes'],
-                                                    mode='eval', params=args)
-        network_eval.load_weights(args.resume, by_name=True)
-
-
-        model_args, _, inference_args = uisrnn.parse_arguments()
-        model_args.observation_dim = 512
-        uisrnnModel = uisrnn.UISRNN(model_args)
-        uisrnnModel.load(SAVED_MODEL_NAME)
+    def main(wav_path, label_path, embedding_per_second=1.0, overlap_rate=0.5):
 
         specs, intervals = load_data(wav_path, embedding_per_second=embedding_per_second, overlap_rate=overlap_rate)
-
-        mapTable, keys = genMap(intervals)
 
         feats = []
         for spec in specs:
@@ -178,13 +133,26 @@ if __name__ == '__main__':
         predicted_label = uisrnnModel.predict(feats, inference_args)
 
         hypothesis = new_utils.result_map(intervals, predicted_label)
-        reference = new_utils.reference_rttm("data/labels/ahnss.rttm")
+        reference = new_utils.reference_rttm(label_path)
 
         der = new_utils.der(reference, hypothesis)
 
-        new_utils.save_and_export(result_map=hypothesis, 
-                                dir=consts.result_dir, 
-                                audio_name="ahnss.wav", 
-                                der=der['diarization error rate'])
+        # new_utils.save_and_export(result_map=hypothesis, 
+        #                         dir=consts.result_dir, 
+        #                         audio_name=wav_path.split("\\")[-1], 
+        #                         der=der['diarization error rate'])
+
+        return der['diarization error rate']
     
-    main(r'data/wav/ahnss.wav', embedding_per_second=1.2, overlap_rate=0.4)
+    
+    wavs_path = glob.glob("data/wav/*.wav")
+    labels_path = "data/labels"
+    ders = []
+    for i, wav_path in tqdm(enumerate(wavs_path)):
+        name_audio = wav_path.split("\\")[-1]
+        der = main(wav_path, labels_path + "/" + name_audio.replace(".wav", ".rttm"), 
+                   embedding_per_second=2, overlap_rate=0.4)
+        print("Der of " + wav_path.split("\\")[-1] + ": " + str(der))
+        ders.append(der)
+    ders = np.array(ders)
+    print("Mean DER: " + str(np.mean(ders)))

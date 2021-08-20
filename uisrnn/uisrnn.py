@@ -150,7 +150,7 @@ class UISRNN:
         Args:
           filepath: the path of the file.
         """
-        var_dict = torch.load(filepath)
+        var_dict = torch.load(filepath, map_location=torch.device('cpu'))
         self.rnn_model.load_state_dict(var_dict['rnn_state_dict'])
         self.rnn_init_hidden = nn.Parameter(
             torch.from_numpy(var_dict['rnn_init_hidden']).to(self.device))
