@@ -95,5 +95,5 @@ def train():
 
     diarization_experiment(model_args, training_args, inference_args)
 
-if __name__ == '__main__':
-    train()
+# if __name__ == '__main__':
+#     train()

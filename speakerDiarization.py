@@ -17,7 +17,6 @@ if __name__ == '__main__':
     import glob
     import torch
     torch.cuda.empty_cache()
-    from tqdm import tqdm
 
     # ===========================================
     #        Parse the argument
@@ -115,7 +114,7 @@ if __name__ == '__main__':
 
         return utterances_spec, intervals
 
-    def main(wav_path, label_path, embedding_per_second=1.0, overlap_rate=0.5):
+    def caculate_der(wav_path, label_path, embedding_per_second=1.0, overlap_rate=0.5):
 
         specs, intervals = load_data(wav_path, embedding_per_second=embedding_per_second, overlap_rate=overlap_rate)
 
@@ -140,6 +139,7 @@ if __name__ == '__main__':
                                 der=der['diarization error rate'])
 
         return der['diarization error rate']
+    
     import time
     start = time.time()
     wavs_path = glob.glob("data/test/*.wav")
@@ -147,7 +147,7 @@ if __name__ == '__main__':
     ders = []
     for i, wav_path in enumerate(wavs_path):
         name_audio = wav_path.split("\\")[-1]
-        der = main(wav_path, labels_path + "\\" + name_audio.replace(".wav", ".rttm"), 
+        der = caculate_der(wav_path, labels_path + "\\" + name_audio.replace(".wav", ".rttm"), 
                    embedding_per_second=2, overlap_rate=0.4)
         print("Der of " + wav_path.split("\\")[-1] + ": " + str(der))
         ders.append(der)

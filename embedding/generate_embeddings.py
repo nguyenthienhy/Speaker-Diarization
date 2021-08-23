@@ -159,8 +159,8 @@ def generate_embeddings():
     np.savez('../data/data_embedding/' + npz_name, train_sequence=train_sequence, train_cluster_id=train_cluster_id)
 
 
-if __name__ == '__main__':
-    start = time.time()
-    generate_embeddings()
-    end = time.time()
-    print("Total time for embedding phase: " + str((end - start) / 60))
+# if __name__ == '__main__':
+#     start = time.time()
+#     generate_embeddings()
+#     end = time.time()
+#     print("Total time for embedding phase: " + str((end - start) / 60))
