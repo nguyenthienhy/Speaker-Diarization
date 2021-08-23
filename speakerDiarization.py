@@ -1,5 +1,7 @@
 """A demo script showing how to DIARIZATION ON WAV USING UIS-RNN."""
+
 if __name__ == '__main__':
+    
     from silence_tensorflow import silence_tensorflow
     silence_tensorflow()
     import numpy as np
@@ -10,16 +12,17 @@ if __name__ == '__main__':
     sys.path.append('visualization')
     import toolkits
     import model as spkModel
-    import os
-    from viewer import PlotDiar
-    import new_utils
     import consts
+    import new_utils
     import glob
+    import torch
+    torch.cuda.empty_cache()
     from tqdm import tqdm
 
     # ===========================================
     #        Parse the argument
     # ===========================================
+
     import argparse
     parser = argparse.ArgumentParser()
     # set up training configuration.
@@ -40,7 +43,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
 
-    SAVED_MODEL_NAME = 'uisrnn/pre_trained/saved_model.uisrnn_benchmark'
+    SAVED_MODEL_NAME = 'saved_model_uisrnn/model_en_0822.uisrnn'
 
     # gpu configuration
     toolkits.initialize_GPU(args.gpu)
@@ -78,13 +81,6 @@ if __name__ == '__main__':
         linear = librosa.stft(wav, n_fft=n_fft, win_length=win_length, hop_length=hop_length) # linear spectrogram
         return linear.T
 
-
-    # 0s        1s        2s                  4s                  6s
-    # |-------------------|-------------------|-------------------|
-    # |-------------------|
-    #           |-------------------|
-    #                     |-------------------|
-    #                               |-------------------|
 
     def load_data(path, win_length=400, 
                 sr=16000, hop_length=160, 
@@ -130,29 +126,32 @@ if __name__ == '__main__':
             feats += [v]
 
         feats = np.array(feats)[:,0,:].astype(float)  # [splits, embedding dim]
+        
         predicted_label = uisrnnModel.predict(feats, inference_args)
-
+        
         hypothesis = new_utils.result_map(intervals, predicted_label)
         reference = new_utils.reference_rttm(label_path)
 
         der = new_utils.der(reference, hypothesis)
 
-        # new_utils.save_and_export(result_map=hypothesis, 
-        #                         dir=consts.result_dir, 
-        #                         audio_name=wav_path.split("\\")[-1], 
-        #                         der=der['diarization error rate'])
+        new_utils.save_and_export(result_map=hypothesis, 
+                                dir=consts.result_dir, 
+                                audio_name=wav_path.split("\\")[-1], 
+                                der=der['diarization error rate'])
 
         return der['diarization error rate']
-    
-    
-    wavs_path = glob.glob("data/wav/*.wav")
-    labels_path = "data/labels"
+    import time
+    start = time.time()
+    wavs_path = glob.glob("data/test/*.wav")
+    labels_path = "data/label_test"
     ders = []
-    for i, wav_path in tqdm(enumerate(wavs_path)):
+    for i, wav_path in enumerate(wavs_path):
         name_audio = wav_path.split("\\")[-1]
-        der = main(wav_path, labels_path + "/" + name_audio.replace(".wav", ".rttm"), 
+        der = main(wav_path, labels_path + "\\" + name_audio.replace(".wav", ".rttm"), 
                    embedding_per_second=2, overlap_rate=0.4)
         print("Der of " + wav_path.split("\\")[-1] + ": " + str(der))
         ders.append(der)
     ders = np.array(ders)
     print("Mean DER: " + str(np.mean(ders)))
+    end = time.time()
+    print("Time to evaluate: " + str(end - start))

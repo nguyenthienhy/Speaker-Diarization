@@ -1,10 +1,8 @@
 hdbscan
 librosa
 matplotlib
-numpy
-sklearn
+scikit-learn
 spectralcluster
-tensorflow
 umap-learn
 pyannote.metrics
 pyannote.audio
